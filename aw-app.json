@@ -2,8 +2,8 @@
   "manifest_version": 1,
   "id": "roblox",
   "name": "Roblox",
-  "version": "0.1.0",
-  "description": "Ports agentic-workspace's four Roblox MCP servers (roblox-gui, npc-control, genie-kanban, genie-npc-control) into aw-workspace as TWO separate upstreams: aw-roblox (full pilot surface — Studio GUI automation + NPC/world control, 25 tools) and aw-roblox-genie (the in-game Genie NPC's narrow, chat-injection-safe subset, 16 tools — no scale_object/kick_players, Kanban access hard-filtered to its own cards). Kept as two upstreams on purpose: merging them would hand the Genie tools it must never reach.",
+  "version": "0.2.0",
+  "description": "Ports agentic-workspace's four Roblox MCP servers (roblox-gui, npc-control, genie-kanban, genie-npc-control) into aw-workspace as TWO separate upstreams: aw-roblox (full pilot surface \u2014 Studio GUI automation + NPC/world control, 25 tools) and aw-roblox-genie (the in-game Genie NPC's narrow, chat-injection-safe subset, 16 tools \u2014 no scale_object/kick_players, Kanban access hard-filtered to its own cards). Kept as two upstreams on purpose: merging them would hand the Genie tools it must never reach.",
   "icon": "gamepad-2",
   "tier": "inprocess",
   "requires_ui_refresh": false,
@@ -66,17 +66,17 @@
       {
         "id": "aw-roblox",
         "path": "skills/aw-roblox/SKILL.md",
-        "description": "Pilot the aw-roblox live game and Studio GUI directly (Frederico's own use) — the full aw-roblox upstream (roblox_gui_* + npc/world control tools), config, and known gotchas."
+        "description": "Pilot the aw-roblox live game and Studio GUI directly (Frederico's own use) \u2014 the full aw-roblox upstream (roblox_gui_* + npc/world control tools), config, and known gotchas."
       },
       {
         "id": "aw-roblox-genie",
         "path": "skills/aw-roblox-genie/SKILL.md",
-        "description": "The in-game Genie NPC's own narrow, chat-injection-safe tool surface (aw-roblox-genie upstream) — what it can and deliberately cannot do, and why."
+        "description": "The in-game Genie NPC's own narrow, chat-injection-safe tool surface (aw-roblox-genie upstream) \u2014 what it can and deliberately cannot do, and why."
       },
       {
         "id": "aw-roblox-world-builder",
         "path": "skills/aw-roblox-world-builder/SKILL.md",
-        "description": "How spawn_object turns a plain-language prompt into a build spec — the JSON schema, placement/routing rules, and module-reuse via reuse_of."
+        "description": "How spawn_object turns a plain-language prompt into a build spec \u2014 the JSON schema, placement/routing rules, and module-reuse via reuse_of."
       },
       {
         "id": "aw-autoskill-aw-roblox-publish",
@@ -96,12 +96,12 @@
       "roblox_pilot_backend_api_key": {
         "type": "string",
         "x-secret": true,
-        "description": "API key the roblox-pilot-backend container issued (its own data/api_keys.json). Routed to this app's secret store via POST /api/apps/roblox/settings — never plain config. Required for every npc_control tool; missing it, each tool call says so by name instead of a bare connection failure."
+        "description": "API key the roblox-pilot-backend container issued (its own data/api_keys.json). Routed to this app's secret store via POST /api/apps/roblox/settings \u2014 never plain config. Required for every npc_control tool; missing it, each tool call says so by name instead of a bare connection failure."
       },
       "roblox_universe_id": {
         "type": "string",
         "default": "2019066227",
-        "description": "aw-roblox game's Roblox universe id. Public, not a secret — used to cross-check Open Cloud's `updated` timestamp during roblox_gui_publish_workflow, and as the force_shutdown_servers messaging target."
+        "description": "aw-roblox game's Roblox universe id. Public, not a secret \u2014 used to cross-check Open Cloud's `updated` timestamp during roblox_gui_publish_workflow, and as the force_shutdown_servers messaging target."
       },
       "roblox_api_key": {
         "type": "string",
@@ -116,7 +116,7 @@
       "studio_exec_base_url": {
         "type": "string",
         "default": "",
-        "description": "OPEN QUESTION, unresolved as of this port (same discussion as aw-app-android-studio): base URL of an HTTP endpoint that can execute a command on a machine with Roblox Studio open, in the same NDJSON-streaming shape the monolith's agents-platform /api/clients/{id}/exec used. Left unset on purpose — no host to point this at was obvious when this app was ported. Every roblox_gui_* tool fails with a clear \"not configured\" message until this (and studio_exec_client_id) are set."
+        "description": "OPEN QUESTION, unresolved as of this port (same discussion as aw-app-android-studio): base URL of an HTTP endpoint that can execute a command on a machine with Roblox Studio open, in the same NDJSON-streaming shape the monolith's agents-platform /api/clients/{id}/exec used. Left unset on purpose \u2014 no host to point this at was obvious when this app was ported. Every roblox_gui_* tool fails with a clear \"not configured\" message until this (and studio_exec_client_id) are set."
       },
       "studio_exec_client_id": {
         "type": "string",
