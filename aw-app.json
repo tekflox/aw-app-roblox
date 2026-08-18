@@ -1,11 +1,13 @@
 {
   "manifest_version": 1,
-  "id": "aw-app-template",
-  "name": "App Template",
-  "version": "0.12.2",
-  "description": "TEMPLATE \u2014 the fastest way to start a new aw-workspace app. Install it and you have a working app on day one: a `hello` CLI that prints a configurable greeting, its own window in the Apps grid, and an HTTP + WebSocket backend \u2014 with tests and marketplace release already wired. Rename everything marked TEMPLATE/hello to make it yours; see README.md.",
+  "id": "roblox",
+  "name": "Roblox",
+  "version": "0.1.0",
+  "description": "Ports agentic-workspace's four Roblox MCP servers (roblox-gui, npc-control, genie-kanban, genie-npc-control) into aw-workspace as TWO separate upstreams: aw-roblox (full pilot surface — Studio GUI automation + NPC/world control, 25 tools) and aw-roblox-genie (the in-game Genie NPC's narrow, chat-injection-safe subset, 16 tools — no scale_object/kick_players, Kanban access hard-filtered to its own cards). Kept as two upstreams on purpose: merging them would hand the Genie tools it must never reach.",
+  "icon": "gamepad-2",
   "tier": "inprocess",
-  "requires_ui_refresh": true,
+  "requires_ui_refresh": false,
+  "category": "Integrations",
   "publisher": "TekFlox",
   "resource_estimate": {
     "cpu": "low",
@@ -14,57 +16,133 @@
   },
   "runtime": {
     "python": ">=3.11",
-    "entrypoint": "template_app.plugin:HelloAppPlugin",
-    "pip_requires": [],
-    "standalone": {
-      "module": "template_app",
-      "default_port": 9400
-    }
+    "entrypoint": "roblox_app.plugin:RobloxAppPlugin",
+    "pip_requires": []
   },
   "permissions": [
-    "commands:install",
-    "fs:workspace-data",
     "routes:register",
-    "ui:code",
-    "ui:slots:core.nav"
+    "secrets:own",
+    "net:outbound"
   ],
   "contributes": {
-    "system_clis": [
-      {
-        "name": "hello",
-        "installer": "scripts/install_hello.sh",
-        "verify": "hello --version"
-      }
-    ],
     "routes": [
       {
-        "prefix": "/api/apps/aw-app-template"
+        "prefix": "/api/apps/roblox"
       }
     ],
-    "frontend": {
-      "mode": "component",
-      "bundle": "ui/dist/template.js"
+    "mcp": {
+      "reload_on_save": false,
+      "provides": [
+        "roblox_gui_status",
+        "roblox_gui_ensure_open",
+        "roblox_gui_publish",
+        "roblox_gui_close_place",
+        "roblox_gui_dismiss_dialogs",
+        "roblox_gui_screenshot",
+        "roblox_gui_cleanup_stray_windows",
+        "roblox_gui_publish_workflow",
+        "npc_list",
+        "list_objects",
+        "npc_view",
+        "npc_move_to",
+        "npc_fly_to",
+        "npc_kamehameha",
+        "move_object",
+        "start_combat",
+        "stop_combat",
+        "duplicate_object",
+        "scale_object",
+        "npc_follow",
+        "set_lighting",
+        "kick_players",
+        "npc_stop_follow",
+        "npc_stop",
+        "spawn_object",
+        "create_genie_card",
+        "list_genie_cards"
+      ]
     },
     "skills": [
       {
-        "id": "aw-create-app",
-        "path": "skills/aw-create-app/SKILL.md",
-        "description": "How to author a decoupled aw-workspace app from this template \u2014 manifest, tiers, capabilities, contributes, backend routes (HTTP+WS), frontend code, standalone mode, window widgets, install + marketplace release."
+        "id": "aw-roblox",
+        "path": "skills/aw-roblox/SKILL.md",
+        "description": "Pilot the aw-roblox live game and Studio GUI directly (Frederico's own use) — the full aw-roblox upstream (roblox_gui_* + npc/world control tools), config, and known gotchas."
+      },
+      {
+        "id": "aw-roblox-genie",
+        "path": "skills/aw-roblox-genie/SKILL.md",
+        "description": "The in-game Genie NPC's own narrow, chat-injection-safe tool surface (aw-roblox-genie upstream) — what it can and deliberately cannot do, and why."
+      },
+      {
+        "id": "aw-roblox-world-builder",
+        "path": "skills/aw-roblox-world-builder/SKILL.md",
+        "description": "How spawn_object turns a plain-language prompt into a build spec — the JSON schema, placement/routing rules, and module-reuse via reuse_of."
+      },
+      {
+        "id": "aw-autoskill-aw-roblox-publish",
+        "path": "skills/aw-autoskill-aw-roblox-publish/SKILL.md",
+        "description": "The rojo build + Open Cloud + force_shutdown_servers publish recipe for the aw-roblox game repo."
       }
     ]
   },
   "config_schema": {
     "type": "object",
     "properties": {
-      "greeting": {
+      "roblox_pilot_backend_url": {
         "type": "string",
-        "default": "Hello",
-        "description": "Word the installed `hello` command prints before the target name, e.g. \"Hello, world!\"."
+        "default": "https://roblox-pilot-backend.app.aw.tekflox.com",
+        "description": "Public subdomain of the roblox-pilot-backend custom app (container aw-custom-roblox-pilot-backend) that npc_control tools relay through. Same path the live Roblox server script itself uses."
+      },
+      "roblox_pilot_backend_api_key": {
+        "type": "string",
+        "x-secret": true,
+        "description": "API key the roblox-pilot-backend container issued (its own data/api_keys.json). Routed to this app's secret store via POST /api/apps/roblox/settings — never plain config. Required for every npc_control tool; missing it, each tool call says so by name instead of a bare connection failure."
+      },
+      "roblox_universe_id": {
+        "type": "string",
+        "default": "2019066227",
+        "description": "aw-roblox game's Roblox universe id. Public, not a secret — used to cross-check Open Cloud's `updated` timestamp during roblox_gui_publish_workflow, and as the force_shutdown_servers messaging target."
+      },
+      "roblox_api_key": {
+        "type": "string",
+        "x-secret": true,
+        "description": "Roblox Open Cloud API key (MessagingService: Publish Message permission on roblox_universe_id). Used only by roblox_gui_publish_workflow's force_shutdown_servers step. Routed to the secret store, same as roblox_pilot_backend_api_key."
+      },
+      "roblox_place_name": {
+        "type": "string",
+        "default": "fredericowu's Place",
+        "description": "Default Roblox Studio place window title every roblox_gui_* tool pins/targets unless a call overrides place_name explicitly."
+      },
+      "studio_exec_base_url": {
+        "type": "string",
+        "default": "",
+        "description": "OPEN QUESTION, unresolved as of this port (same discussion as aw-app-android-studio): base URL of an HTTP endpoint that can execute a command on a machine with Roblox Studio open, in the same NDJSON-streaming shape the monolith's agents-platform /api/clients/{id}/exec used. Left unset on purpose — no host to point this at was obvious when this app was ported. Every roblox_gui_* tool fails with a clear \"not configured\" message until this (and studio_exec_client_id) are set."
+      },
+      "studio_exec_client_id": {
+        "type": "string",
+        "default": "",
+        "description": "The client id path segment for studio_exec_base_url's exec endpoint (POST {studio_exec_base_url}/api/clients/{studio_exec_client_id}/exec). See studio_exec_base_url."
       }
     },
     "required": []
   },
-  "config_visible": false,
-  "dependencies": {},
+  "config_visible": true,
+  "dependencies": {
+    "apps": [
+      {
+        "id": "mcp-gateway",
+        "version": ">=0.1.0",
+        "required": true,
+        "reason": "This app contributes an mcp.json entry (the 'aw-roblox' and 'aw-roblox-genie' servers) that MCP Gateway discovers and merges; without the gateway no agent can reach either upstream's tools."
+      },
+      {
+        "id": "notion",
+        "version": ">=0.1.0",
+        "required": false,
+        "reason": "create_genie_card/list_genie_cards call aw-app-notion's Kanban REST mirror (/api/apps/notion/kanban/cards) over the loopback workspace API. Not required to install this app, but both genie-kanban tools return a clear \"aw-app-notion not installed\" error without it."
+      }
+    ],
+    "note": "Runtime-enforced app dependency: aw-workspace loads mcp-gateway before this app so the gateway can scan roblox/mcp.json."
+  },
   "migrations": {}
 }
