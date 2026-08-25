@@ -17,7 +17,7 @@
   "runtime": {
     "python": ">=3.11",
     "entrypoint": "roblox_app.plugin:RobloxAppPlugin",
-    "pip_requires": []
+    "pip_requires": ["httpx"]
   },
   "permissions": [
     "routes:register",
@@ -113,15 +113,10 @@
         "default": "fredericowu's Place",
         "description": "Default Roblox Studio place window title every roblox_gui_* tool pins/targets unless a call overrides place_name explicitly."
       },
-      "studio_exec_base_url": {
+      "studio_remote_host_id": {
         "type": "string",
         "default": "",
-        "description": "OPEN QUESTION, unresolved as of this port (same discussion as aw-app-android-studio): base URL of an HTTP endpoint that can execute a command on a machine with Roblox Studio open, in the same NDJSON-streaming shape the monolith's agents-platform /api/clients/{id}/exec used. Left unset on purpose \u2014 no host to point this at was obvious when this app was ported. Every roblox_gui_* tool fails with a clear \"not configured\" message until this (and studio_exec_client_id) are set."
-      },
-      "studio_exec_client_id": {
-        "type": "string",
-        "default": "",
-        "description": "The client id path segment for studio_exec_base_url's exec endpoint (POST {studio_exec_base_url}/api/clients/{studio_exec_client_id}/exec). See studio_exec_base_url."
+        "description": "Which aw-remote-hosts-linked machine has Roblox Studio open \u2014 an id, workspace slug, or hostname. See GET /api/apps/roblox/remote-hosts for the list of hosts linked to this account (id/hostname/os/connected). Every roblox_gui_* tool fails with a clear \"not configured\" message until this is set to a Windows host with Studio installed and aw-remote-host running interactively."
       }
     },
     "required": []

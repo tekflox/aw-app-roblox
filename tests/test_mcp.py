@@ -81,7 +81,7 @@ def test_npc_control_tool_without_api_key_names_the_missing_config():
 def test_roblox_gui_tool_without_exec_config_names_the_missing_config():
     text, is_error = roblox_gui.DISPATCH["roblox_gui_status"]({})
     assert is_error is True
-    assert "studio_exec_base_url" in text
+    assert "studio_remote_host_id" in text
 
 
 def test_genie_kanban_prefixes_title_and_never_lets_caller_skip_it():
@@ -133,7 +133,7 @@ def test_config_defaults():
     assert config.pilot_backend_url() == config.DEFAULT_PILOT_BACKEND_URL
     assert config.universe_id() == config.DEFAULT_UNIVERSE_ID
     assert config.default_place_name() == config.DEFAULT_PLACE_NAME
-    assert config.studio_exec_base_url() == ""
+    assert config.studio_remote_host_id() == ""
     assert config.pilot_backend_api_key() == ""
 
 

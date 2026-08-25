@@ -41,7 +41,7 @@ class RobloxAppPlugin:
             sorted(doc["mcpServers"]),
             "saved" if config.pilot_backend_api_key() else "NOT SET",
             "saved" if config.roblox_api_key() else "NOT SET",
-            "configured" if (config.studio_exec_base_url() and config.studio_exec_client_id()) else "NOT SET (open question, see Kanban card)",
+            config.studio_remote_host_id() or "NOT SET",
         )
 
     async def deactivate(self) -> None:

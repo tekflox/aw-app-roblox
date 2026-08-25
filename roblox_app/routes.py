@@ -13,7 +13,7 @@ from __future__ import annotations
 from fastapi import Body, FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 
-from . import config, mcp_config
+from . import config, mcp_config, remote_host_client
 from .mcp import aw_roblox_genie_server, aw_roblox_server
 
 SECRET_KEYS = (config.PILOT_BACKEND_API_KEY, config.ROBLOX_API_KEY)
@@ -28,7 +28,8 @@ def build_routes(ctx) -> FastAPI:
             "pilot_backend_configured": bool(config.pilot_backend_api_key()),
             "pilot_backend_url": config.pilot_backend_url(),
             "roblox_api_key_configured": bool(config.roblox_api_key()),
-            "studio_exec_configured": bool(config.studio_exec_base_url() and config.studio_exec_client_id()),
+            "studio_remote_host_id": config.studio_remote_host_id(),
+            "studio_exec_configured": bool(config.studio_remote_host_id()),
             "tools": {
                 aw_roblox_server.SERVER_NAME: [t["name"] for t in aw_roblox_server.TOOLS_SCHEMA],
                 aw_roblox_genie_server.SERVER_NAME: [t["name"] for t in aw_roblox_genie_server.TOOLS_SCHEMA],
@@ -57,6 +58,21 @@ def build_routes(ctx) -> FastAPI:
             if key in SECRET_KEYS:
                 ctx.secrets.delete(key)
         return {"ok": True, "cleared": keys}
+
+    @app.get("/remote-hosts")
+    async def remote_hosts() -> dict:
+        """Hosts this account has linked via aw-remote-hosts, for picking a
+        value for the studio_remote_host_id config field — config_schema has
+        no dynamic-dropdown mechanism, so this is the "browse the options"
+        step a human (or agent) does before pasting an id into Settings."""
+        client = remote_host_client.RemoteHostClient()
+        if not client.configured:
+            return {"configured": False, "hosts": [], "current": config.studio_remote_host_id()}
+        try:
+            data = client.list_account_hosts()
+        except remote_host_client.RemoteHostError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=502)
+        return {"configured": True, "hosts": data.get("hosts") or [], "current": config.studio_remote_host_id()}
 
     @app.get("/mcp.json")
     async def mcp_json() -> dict:

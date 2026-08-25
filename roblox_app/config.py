@@ -63,14 +63,10 @@ def default_place_name() -> str:
     return _cfg().get("roblox_place_name") or DEFAULT_PLACE_NAME
 
 
-def studio_exec_base_url() -> str:
-    """Base URL of an HTTP endpoint implementing the same NDJSON exec
-    contract the monolith's agents-platform ``/api/clients/{id}/exec``
-    used — see ``mcp/roblox_gui.py``'s module docstring for the exact
-    shape and why this is left unconfigured by default (open question,
-    same as the aw-app-android-studio card)."""
-    return (_cfg().get("studio_exec_base_url") or "").rstrip("/")
-
-
-def studio_exec_client_id() -> str:
-    return _cfg().get("studio_exec_client_id") or ""
+def studio_remote_host_id() -> str:
+    """Which aw-remote-hosts-linked machine has Roblox Studio open — an id,
+    workspace slug, or hostname from ``GET /api/apps/roblox/remote-hosts``
+    (resolved to an id via ``remote_host_client.resolve_host_ref``). Empty
+    by default: every ``roblox_gui_*`` tool fails with a clear "not
+    configured" message rather than a silent timeout until this is set."""
+    return (_cfg().get("studio_remote_host_id") or "").strip()

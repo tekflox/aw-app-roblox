@@ -6,23 +6,19 @@ and the thin MCP wrapper that added the publish-workflow retry
 (``src/mcp/roblox_gui.py``). One file here since nothing else in this app
 consumes the raw library separately.
 
-**Open question, do not guess (per the Kanban card for this port):** the
+**Resolved (was an open question, see the Kanban card for this port):** the
 monolith reached a Windows machine with Roblox Studio open via
 agents-platform's own ``POST /api/clients/{client_id}/exec`` — a
 long-poll NDJSON exec channel to a specific paired client
 (``aw-windows``, hardcoded client id), local to that monolith's host.
-That mechanism does not exist in this decoupled workspace, and which
-host would even run Studio is not obvious (same open question as the
-aw-app-android-studio card). So the exec endpoint is entirely
-config-driven here (``studio_exec_base_url`` / ``studio_exec_client_id``,
-see :mod:`roblox_app.config`) and defaults to unset — every tool in this
-module fails with a clear "not configured" message rather than a silent
-timeout until a real answer lands on the Kanban card. Whatever serves
-that endpoint must speak the same contract ``_exec_remote`` expects
-below: ``POST {base_url}/api/clients/{client_id}/exec`` with
-``{"command": <str>, "timeout": <int>}``, streaming newline-delimited
-JSON objects shaped either ``{"stream": "stdout"|"stderr", "data": str}``
-or ``{"done": true, "returncode": int}``.
+That mechanism does not exist in this decoupled workspace, so the exec
+transport now goes through aw-remote-hosts instead: whichever machine has
+Roblox Studio open links itself via the ``aw-remote-host`` agent (same
+BYOD link used for exec/fs elsewhere in this workspace), and
+``studio_remote_host_id`` (see :mod:`roblox_app.config`) names which linked
+host that is. ``_exec_remote`` below is a thin wrapper over
+``remote_host_client.RemoteHostClient.run`` — a real command + block
+until it finishes, returning ``(stdout, stderr, returncode)``.
 
 Everything below the exec transport (the pywinauto script that runs on
 the Windows side, the publish-workflow retry logic, window pinning,
@@ -38,7 +34,7 @@ import time
 import urllib.error
 import urllib.request
 
-from .. import config
+from .. import config, remote_host_client
 
 DEFAULT_PLACE_NAME = config.DEFAULT_PLACE_NAME
 FORCE_SHUTDOWN_TOPIC = "ForceShutdownOnPublish"
@@ -51,11 +47,10 @@ WINDOW_X, WINDOW_Y, WINDOW_W, WINDOW_H = 0, 0, 1600, 1000
 _RESULT_MARKER = "###AW_GUI_RESULT###"
 
 _NO_EXEC = (
-    "studio_exec_base_url / studio_exec_client_id are not configured for this app "
-    "(Settings). This tool needs a live HTTP exec channel to a machine with Roblox "
-    "Studio open and signed in -- see roblox_app/mcp/roblox_gui.py's module "
-    "docstring for the contract it expects, and this port's Kanban card for the "
-    "open question of which host that should be."
+    "studio_remote_host_id is not configured for this app (Settings). This tool "
+    "needs the id/hostname/slug of an aw-remote-hosts-linked machine with Roblox "
+    "Studio open and signed in -- see GET /api/apps/roblox/remote-hosts for the "
+    "hosts this account has linked."
 )
 
 # ─── Windows-side script (never touches disk there) ────────────────────────
@@ -277,34 +272,15 @@ def _render_windows_script(action: str, params: dict) -> str:
 
 
 def _exec_remote(command: str, timeout: int = 60) -> tuple[str, str, int]:
-    """POST the exec endpoint (see module docstring for the contract),
-    drain the NDJSON stream, return (stdout, stderr, returncode)."""
-    base_url = config.studio_exec_base_url()
-    client_id = config.studio_exec_client_id()
-    if not base_url or not client_id:
+    """Run ``command`` on ``studio_remote_host_id`` via aw-remote-hosts,
+    block until it finishes, return (stdout, stderr, returncode)."""
+    host_ref = config.studio_remote_host_id()
+    if not host_ref:
         raise RuntimeError(_NO_EXEC)
 
-    url = f"{base_url}/api/clients/{client_id}/exec"
-    body = json.dumps({"command": command, "timeout": timeout}).encode()
-    req = urllib.request.Request(url, data=body, method="POST",
-                                 headers={"Content-Type": "application/json"})
-    stdout_parts: list[str] = []
-    stderr_parts: list[str] = []
-    returncode = -1
-    with urllib.request.urlopen(req, timeout=timeout + 20) as resp:
-        for raw_line in resp:
-            line = raw_line.decode("utf-8", "replace").strip()
-            if not line:
-                continue
-            item = json.loads(line)
-            if item.get("done"):
-                returncode = item.get("returncode", -1)
-                break
-            if item.get("stream") == "stderr":
-                stderr_parts.append(item.get("data", ""))
-            else:
-                stdout_parts.append(item.get("data", ""))
-    return "".join(stdout_parts), "".join(stderr_parts), returncode
+    client = remote_host_client.RemoteHostClient()
+    host_id = remote_host_client.resolve_host_ref(client, host_ref)
+    return client.run(command, host_id, timeout_s=float(timeout))
 
 
 def _run(action: str, params: dict, timeout: int = 60) -> dict:
@@ -319,8 +295,6 @@ def _run(action: str, params: dict, timeout: int = 60) -> dict:
         stdout, stderr, returncode = _exec_remote(ps_command, timeout=timeout)
     except RuntimeError as exc:
         return {"success": False, "detail": str(exc)}
-    except (urllib.error.URLError, urllib.error.HTTPError) as exc:
-        return {"success": False, "detail": f"exec endpoint unreachable: {exc}"}
 
     for line in reversed(stdout.splitlines()):
         if line.startswith(_RESULT_MARKER):
