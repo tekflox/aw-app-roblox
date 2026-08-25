@@ -14,9 +14,14 @@ from fastapi import Body, FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 
 from . import config, mcp_config, remote_host_client
-from .mcp import aw_roblox_genie_server, aw_roblox_server
+from .mcp import aw_roblox_genie_server, aw_roblox_server, roblox_gui
 
 SECRET_KEYS = (config.PILOT_BACKEND_API_KEY, config.ROBLOX_API_KEY)
+
+# What roblox_gui's _WINDOWS_SCRIPT needs on the exec host's `python` --
+# pywinauto (UI Automation), Pillow (roblox_gui_screenshot's ImageGrab),
+# pywin32 (pywinauto's backend dependency on Windows).
+_STUDIO_DEPS = ("pywinauto", "pillow", "pywin32")
 
 
 def build_routes(ctx) -> FastAPI:
@@ -30,6 +35,7 @@ def build_routes(ctx) -> FastAPI:
             "roblox_api_key_configured": bool(config.roblox_api_key()),
             "studio_remote_host_id": config.studio_remote_host_id(),
             "studio_exec_configured": bool(config.studio_remote_host_id()),
+            "logged_in": bool(config.studio_remote_host_id()),
             "tools": {
                 aw_roblox_server.SERVER_NAME: [t["name"] for t in aw_roblox_server.TOOLS_SCHEMA],
                 aw_roblox_genie_server.SERVER_NAME: [t["name"] for t in aw_roblox_genie_server.TOOLS_SCHEMA],
@@ -73,6 +79,38 @@ def build_routes(ctx) -> FastAPI:
         except remote_host_client.RemoteHostError as exc:
             return JSONResponse({"error": str(exc)}, status_code=502)
         return {"configured": True, "hosts": data.get("hosts") or [], "current": config.studio_remote_host_id()}
+
+    @app.post("/provision")
+    async def provision() -> dict:
+        """Installs what roblox_gui's Windows-side script needs (pywinauto,
+        Pillow, pywin32) on studio_remote_host_id via pip --user. Idempotent
+        -- pip no-ops on an already-satisfied requirement -- so this is safe
+        to press again after an app update or a host reimage."""
+        host_ref = config.studio_remote_host_id()
+        if not host_ref:
+            return JSONResponse({"ok": False, "error": "studio_remote_host_id is not set"}, status_code=400)
+        client = remote_host_client.RemoteHostClient()
+        try:
+            host_id = remote_host_client.resolve_host_ref(client, host_ref)
+            command = "python -m pip install --user " + " ".join(_STUDIO_DEPS)
+            stdout, stderr, returncode = client.run(command, host_id, timeout_s=180)
+        except remote_host_client.RemoteHostError as exc:
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
+        return {
+            "ok": returncode == 0,
+            "host_id": host_id,
+            "returncode": returncode,
+            "stdout": stdout[-4000:],
+            "stderr": stderr[-4000:],
+        }
+
+    @app.post("/test")
+    async def test_studio_connection() -> dict:
+        """Round-trips roblox_gui_status against studio_remote_host_id --
+        the same call an agent's roblox_gui_status MCP tool makes, exposed
+        here so a human can verify the wiring from the app's own window
+        without going through an agent."""
+        return roblox_gui.status()
 
     @app.get("/mcp.json")
     async def mcp_json() -> dict:

@@ -1,0 +1,60 @@
+{
+  "layout": "stack",
+  "regions": [
+    {
+      "id": "status",
+      "widgets": [
+        { "type": "markdown", "value": "## Roblox" },
+        {
+          "type": "auth_status",
+          "bind": "GET /api/apps/roblox/status",
+          "loading_text": "Checking Studio exec host…",
+          "logged_in_text": "Studio exec host set to {studio_remote_host_id}.",
+          "logged_out_text": "No studio_remote_host_id set yet -- roblox_gui_* tools will fail naming this until it's configured below."
+        }
+      ]
+    },
+    {
+      "id": "setup",
+      "widgets": [
+        {
+          "type": "markdown",
+          "value": "### Studio exec host\nWhich **aw-remote-hosts-linked machine** has Roblox Studio open and signed in. That machine's `aw-remote-host` must run in the **logged-in interactive desktop session** -- a Windows *service* has no desktop, and every pywinauto call fails there.\n\nLook up ids/hostnames with `GET /api/apps/roblox/remote-hosts`, or `aw-workspace-cli remote-hosts hosts`."
+        },
+        {
+          "type": "form",
+          "id": "roblox_studio_host",
+          "submit": { "call": "POST /api/apps/roblox/config" },
+          "submit_label": "Save",
+          "fields": [
+            {
+              "key": "studio_remote_host_id",
+              "label": "Studio host (id, workspace slug, or hostname)",
+              "input": "text",
+              "placeholder": "c76c606b0a2a5a8b"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "widgets": [
+        {
+          "type": "markdown",
+          "value": "### Provision and verify\n**Provision the host** pip-installs pywinauto (UI Automation), Pillow (screenshot) and pywin32 into the host's `python -m pip` -- idempotent, safe to press again after an app update.\n\n**Test connection** calls the same `roblox_gui_status` an agent's MCP tool would, and shows Studio's real current window state."
+        },
+        {
+          "type": "button",
+          "label": "Provision the host",
+          "action": { "call": "POST /api/apps/roblox/provision" }
+        },
+        {
+          "type": "button",
+          "label": "Test connection",
+          "action": { "call": "POST /api/apps/roblox/test" }
+        }
+      ]
+    }
+  ]
+}
