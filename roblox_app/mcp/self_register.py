@@ -1,13 +1,11 @@
-"""Entries describing this app's own two ``/mcp`` endpoints, for
-aw-mcp-gateway's app-scan (``scan_app_mcp_servers()``, which reads
-``<app dir>/mcp.json``).
+"""Entry describing this app's own ``/mcp`` endpoint, for aw-mcp-gateway's
+app-scan (``scan_app_mcp_servers()``, which reads ``<app dir>/mcp.json``).
 
-TWO entries, not one -- ``aw-roblox`` (full surface) and
-``aw-roblox-genie`` (the Genie's narrow subset) each get their own
-gateway upstream key and their own route, so a caller wired only to one
-profile can never reach the other's tools regardless of misconfiguration
-elsewhere. See ``aw_roblox_server.py``'s and ``aw_roblox_genie_server.py``'s
-module docstrings for why that boundary has to live at this level.
+Used to also register a second ``aw-roblox-genie`` upstream here -- that
+server (the Genie NPC's narrow, chat-injection-safe subset) moved to its
+own app, ``aw-app-roblox-genie``, 2026-08-26, so a random player's chat
+message never shares a package/permission boundary with this app's full
+pilot surface. See that app's README for the security rationale.
 
 Tier-1 (in-process): this *is* the aw-workspace process, so
 ``socket.gethostname()`` is exactly the value ContainerSupervisor injects
@@ -24,26 +22,16 @@ import socket
 ROBLOX_SERVER_NAME = "aw-roblox"
 ROBLOX_ROUTE_PATH = "/api/apps/roblox/mcp"
 
-GENIE_SERVER_NAME = "aw-roblox-genie"
-GENIE_ROUTE_PATH = "/api/apps/roblox/mcp-genie"
 
-
-def _entry(route_path: str, port: int | None) -> dict:
+def build_mcp_servers(port: int | None = None) -> dict:
     host = socket.gethostname()
     port = port or int(os.environ.get("AW_PORT") or 9030)
     entry: dict = {
         "type": "http",
-        "url": f"http://{host}:{port}{route_path}",
+        "url": f"http://{host}:{port}{ROBLOX_ROUTE_PATH}",
         "enabled": True,
     }
     api_key = os.environ.get("AW_WORKSPACE_API_KEY")
     if api_key:
         entry["headers"] = {"X-Api-Key": api_key}
-    return entry
-
-
-def build_mcp_servers(port: int | None = None) -> dict:
-    return {
-        ROBLOX_SERVER_NAME: _entry(ROBLOX_ROUTE_PATH, port),
-        GENIE_SERVER_NAME: _entry(GENIE_ROUTE_PATH, port),
-    }
+    return {ROBLOX_SERVER_NAME: entry}

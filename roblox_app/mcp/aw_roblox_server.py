@@ -8,13 +8,13 @@ authenticated route instead of a gateway-spawned stdio child (see
 neither the monolith's shared filesystem nor its exec channel, so the
 stdio-subprocess shape wouldn't port cleanly anyway).
 
-**Kept deliberately separate from the Genie's upstream**
-(:mod:`roblox_app.mcp.aw_roblox_genie_server`) — this is the full-power
-surface (``scale_object``, ``kick_players``, GUI automation), reachable
-only by whoever this app is configured for (Frederico via any MCP-capable
-agent), never by the in-game Genie NPC's own chat-triggered tool calls.
-Merging the two into one upstream would erase that boundary — see the
-Genie server module's docstring for the actual security rationale.
+**Kept deliberately separate from the Genie's upstream**, which now lives
+in its own app (``aw-app-roblox-genie``, split out 2026-08-26) — this is
+the full-power surface (``scale_object``, ``kick_players``, GUI
+automation), reachable only by whoever this app is configured for
+(Frederico via any MCP-capable agent), never by the in-game Genie NPC's
+own chat-triggered tool calls. See that app's README for the security
+rationale behind the split.
 """
 from __future__ import annotations
 

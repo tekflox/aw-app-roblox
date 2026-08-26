@@ -14,7 +14,7 @@ from fastapi import Body, FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 
 from . import config, mcp_config, remote_host_client
-from .mcp import aw_roblox_genie_server, aw_roblox_server, roblox_gui
+from .mcp import aw_roblox_server, roblox_gui
 
 SECRET_KEYS = (config.PILOT_BACKEND_API_KEY, config.ROBLOX_API_KEY)
 
@@ -38,7 +38,6 @@ def build_routes(ctx) -> FastAPI:
             "logged_in": bool(config.studio_remote_host_id()),
             "tools": {
                 aw_roblox_server.SERVER_NAME: [t["name"] for t in aw_roblox_server.TOOLS_SCHEMA],
-                aw_roblox_genie_server.SERVER_NAME: [t["name"] for t in aw_roblox_genie_server.TOOLS_SCHEMA],
             },
         }
 
@@ -117,9 +116,7 @@ def build_routes(ctx) -> FastAPI:
         return {"mcpServers": mcp_config.build_mcp_servers()}
 
     # ------------------------------------------------------------------
-    # MCP — Streamable HTTP, TWO separate upstreams, auto-discovered by
-    # aw-mcp-gateway's app-scan. Never merge these two routes/servers --
-    # see mcp/aw_roblox_genie_server.py's docstring.
+    # MCP — Streamable HTTP, auto-discovered by aw-mcp-gateway's app-scan.
     # ------------------------------------------------------------------
 
     @app.post("/mcp")
@@ -128,14 +125,6 @@ def build_routes(ctx) -> FastAPI:
 
     @app.get("/mcp")
     async def mcp_get():
-        return Response(status_code=405)
-
-    @app.post("/mcp-genie")
-    async def mcp_genie_post(request: Request):
-        return await _dispatch(request, aw_roblox_genie_server.handle_request)
-
-    @app.get("/mcp-genie")
-    async def mcp_genie_get():
         return Response(status_code=405)
 
     async def _dispatch(request: Request, handler):
