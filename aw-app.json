@@ -2,7 +2,7 @@
   "manifest_version": 1,
   "id": "roblox",
   "name": "Roblox",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Pilot the live aw-roblox game and Roblox Studio directly (Frederico's own use): Studio GUI automation (open/publish/screenshot the place) plus NPC/world control (move, spawn, duplicate objects, combat, lighting), 25 tools total. The in-game Genie NPC's own narrow, chat-injection-safe tool surface moved to its own app, aw-app-roblox-genie, so a random player's chat message can never reach this app's full-power tools (scale_object, kick_players).",
   "icon": "gamepad-2",
   "tier": "inprocess",
